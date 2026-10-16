@@ -342,24 +342,17 @@ async function seedDatabase() {
     const shelfList = Object.values(shelfMap);
     const copies = [];
 
-    // Each book has 2 copies: CP-BOOK-001-01, CP-BOOK-001-02
+    // Mỗi đầu sách tạo 25 bản sao để độc giả thoải mái mượn
     books.forEach((book, bIndex) => {
-      const shelf1 = shelfList[bIndex % shelfList.length];
-      const shelf2 = shelfList[(bIndex + 1) % shelfList.length];
-
-      copies.push({
-        book_id: bookMap[book.code],
-        shelf_id: shelf1,
-        copy_code: `CP-${book.code}-01`,
-        condition_note: 'Sách mới 100%'
-      });
-
-      copies.push({
-        book_id: bookMap[book.code],
-        shelf_id: shelf2,
-        copy_code: `CP-${book.code}-02`,
-        condition_note: 'Sách mới 95%, tình trạng tốt'
-      });
+      for (let c = 1; c <= 25; c++) {
+        const shelf = shelfList[(bIndex + c) % shelfList.length];
+        copies.push({
+          book_id: bookMap[book.code],
+          shelf_id: shelf,
+          copy_code: `CP-${book.code}-${String(c).padStart(2, '0')}`,
+          condition_note: c % 5 === 0 ? 'Mới 90%, tình trạng tốt' : 'Sách mới 100%'
+        });
+      }
     });
 
     for (const cp of copies) {

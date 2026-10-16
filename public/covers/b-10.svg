@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 420" width="300" height="420">
+  <defs>
+    <linearGradient id="bg-b-10" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0369a1" />
+      <stop offset="50%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0ea5e9" />
+    </linearGradient>
+    <linearGradient id="spine-b-10" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.25)" />
+      <stop offset="10%" stop-color="rgba(0,0,0,0.15)" />
+      <stop offset="100%" stop-color="rgba(0,0,0,0)" />
+    </linearGradient>
+    <linearGradient id="accentGrad-b-10" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7dd3fc" />
+      <stop offset="100%" stop-color="#ffffff" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="300" height="420" rx="12" fill="url(#bg-b-10)" />
+
+  <!-- Subtle Texture & Grid Lines -->
+  <g opacity="0.12" stroke="#ffffff" stroke-width="1">
+    <line x1="24" y1="20" x2="276" y2="20" />
+    <line x1="24" y1="400" x2="276" y2="400" />
+    <circle cx="260" cy="40" r="28" fill="none" />
+    <circle cx="260" cy="40" r="16" fill="none" />
+  </g>
+
+  <!-- Spine Overlay on Left -->
+  <rect x="0" y="0" width="22" height="420" rx="12" fill="url(#spine-b-10)" />
+  <line x1="22" y1="0" x2="22" y2="420" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
+
+  <!-- Category Badge -->
+  <g transform="translate(36, 32)">
+    <rect width="130" height="22" rx="6" fill="rgba(255,255,255,0.18)" backdrop-filter="blur(4px)" />
+    <text x="65" y="15" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="0.5">
+      TÂM LÝ & NHẬN THỨC
+    </text>
+  </g>
+
+  <!-- Decorative Icon Emblem -->
+  <g transform="translate(36, 75)" opacity="0.9">
+    <rect width="40" height="40" rx="10" fill="rgba(255,255,255,0.15)" />
+    <path d="M12 14 L28 14 M12 20 L28 20 M12 26 L22 26" stroke="#7dd3fc" stroke-width="2.5" stroke-linecap="round" />
+  </g>
+
+  <!-- Title & Subtitle -->
+  <text x="36" y="160" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="800">
+    Tư Duy Nhanh & Chậm
+  </text>
+  <text x="36" y="185" fill="#7dd3fc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" opacity="0.95">
+    Thinking, Fast and Slow
+  </text>
+
+  <!-- Golden Divider -->
+  <rect x="36" y="210" width="80" height="3" rx="1.5" fill="url(#accentGrad-b-10)" />
+
+  <!-- Author Name -->
+  <g transform="translate(36, 320)">
+    <text x="0" y="0" fill="rgba(255,255,255,0.65)" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="500">
+      TÁC GIẢ
+    </text>
+    <text x="0" y="20" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700">
+      Daniel Kahneman
+    </text>
+  </g>
+
+  <!-- Bottom Barcode & Library Seal -->
+  <g transform="translate(36, 375)">
+    <!-- Barcode simulation lines -->
+    <rect x="0" y="0" width="2" height="18" fill="rgba(255,255,255,0.7)" />
+    <rect x="4" y="0" width="1" height="18" fill="rgba(255,255,255,0.7)" />
+    <rect x="7" y="0" width="3" height="18" fill="rgba(255,255,255,0.7)" />
+    <rect x="12" y="0" width="1" height="18" fill="rgba(255,255,255,0.7)" />
+    <rect x="15" y="0" width="2" height="18" fill="rgba(255,255,255,0.7)" />
+    <rect x="19" y="0" width="4" height="18" fill="rgba(255,255,255,0.7)" />
+    <rect x="25" y="0" width="2" height="18" fill="rgba(255,255,255,0.7)" />
+    <rect x="29" y="0" width="1" height="18" fill="rgba(255,255,255,0.7)" />
+    <rect x="32" y="0" width="3" height="18" fill="rgba(255,255,255,0.7)" />
+    <rect x="37" y="0" width="2" height="18" fill="rgba(255,255,255,0.7)" />
+    <rect x="41" y="0" width="1" height="18" fill="rgba(255,255,255,0.7)" />
+    <rect x="44" y="0" width="3" height="18" fill="rgba(255,255,255,0.7)" />
+    <text x="56" y="14" fill="rgba(255,255,255,0.6)" font-family="monospace" font-size="10">TV-LIB</text>
+
+    <!-- Star rating badge -->
+    <text x="220" y="14" fill="#7dd3fc" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="11" font-weight="bold" text-anchor="end">
+      ★ ★ ★ ★ ★
+    </text>
+  </g>
+</svg>

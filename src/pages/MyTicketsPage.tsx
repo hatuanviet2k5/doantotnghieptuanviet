@@ -22,6 +22,7 @@ import {
   Barcode,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { SYNC_EVENT_NAME } from '@/services/libraryStore';
 
 export const MyTicketsPage: React.FC = () => {
   const { user } = useAuth();
@@ -35,17 +36,25 @@ export const MyTicketsPage: React.FC = () => {
 
   useEffect(() => {
     loadMyTickets();
+
+    const handleSync = () => {
+      loadMyTickets(false);
+    };
+    window.addEventListener(SYNC_EVENT_NAME, handleSync);
+    return () => {
+      window.removeEventListener(SYNC_EVENT_NAME, handleSync);
+    };
   }, [user]);
 
-  const loadMyTickets = async () => {
-    setLoading(true);
+  const loadMyTickets = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const data = await ticketService.getTickets({ userId: user?.id });
       setTickets(data);
     } catch (err: any) {
       toast.error('Không thể tải danh sách phiếu mượn: ' + err.message);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 

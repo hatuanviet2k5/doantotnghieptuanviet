@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Book as BookType } from '@/types';
 import { BookOpen, Bookmark, User as UserIcon, CheckCircle2, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { BookCoverImage } from './BookCoverImage';
 
 interface BookCardProps {
   book: BookType;
@@ -14,22 +15,18 @@ export const BookCard: React.FC<BookCardProps> = ({
   onHold,
   showHoldButton = true,
 }) => {
-  const [imageError, setImageError] = useState(false);
   const isAvailable = book.availableCopies > 0;
-
-  const fallbackImage =
-    'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=600&q=80';
 
   return (
     <div className="group flex flex-col overflow-hidden rounded-2xl bg-white border border-slate-200/80 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
       {/* Cover Image Container */}
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-slate-100">
-        <img
-          src={imageError || !book.coverImage ? fallbackImage : book.coverImage}
+        <BookCoverImage
+          src={book.coverImage}
+          bookId={book.id}
           alt={book.title}
-          onError={() => setImageError(true)}
+          title={book.title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
         />
 
         {/* Status Badge Overlay */}

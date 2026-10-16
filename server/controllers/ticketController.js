@@ -362,6 +362,14 @@ const ticketController = {
         );
       }
 
+      // Recalculate book available_copies so it decreases by 1
+      await connection.query(`
+        UPDATE books b
+        SET available_copies = (
+          SELECT COUNT(id) FROM book_copies WHERE book_id = b.id AND status = 'AVAILABLE'
+        )
+      `);
+
       await AuditService.log({
         actorId: req.user.id,
         action: 'VERIFY_QR_BORROW',
@@ -894,6 +902,101 @@ const ticketController = {
         message: 'Lỗi khi lấy thông tin phiếu mượn',
         error: error.message
       });
+    }
+  },
+
+  /**
+   * Admin / Thủ thư duyệt phiếu mượn (giảm số sách khả dụng đi 1)
+   * POST /api/v1/tickets/:id/approve
+   */
+  async approveTicket(req, res) {
+    const connection = await pool.getConnection();
+    try {
+      const { id } = req.params;
+      await connection.beginTransaction();
+
+      const [ticketRows] = await connection.query(
+        'SELECT * FROM borrow_tickets WHERE id = ? FOR UPDATE',
+        [id]
+      );
+
+      if (ticketRows.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy phiếu mượn'
+        });
+      }
+
+      const ticket = ticketRows[0];
+      if (ticket.status === 'BORROWED') {
+        await connection.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Phiếu mượn này đã được duyệt trước đó'
+        });
+      }
+
+      const now = new Date();
+      const dueDate = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+      // 1. Cập nhật trạng thái phiếu mượn
+      await connection.query(
+        "UPDATE borrow_tickets SET status = 'BORROWED', due_date = ?, hold_expires_at = NULL WHERE id = ?",
+        [dueDate, id]
+      );
+
+      // 2. Cập nhật các bản sao thành BORROWED
+      const [details] = await connection.query(
+        'SELECT copy_id FROM ticket_details WHERE ticket_id = ?',
+        [id]
+      );
+      const copyIds = details.map(d => d.copy_id);
+      if (copyIds.length > 0) {
+        const placeholders = copyIds.map(() => '?').join(',');
+        await connection.query(
+          `UPDATE book_copies SET status = 'BORROWED' WHERE id IN (${placeholders})`,
+          copyIds
+        );
+      }
+
+      // 3. Đồng bộ lại số lượng khả dụng của sách (giảm đi 1)
+      await connection.query(`
+        UPDATE books b
+        SET available_copies = (
+          SELECT COUNT(id) FROM book_copies WHERE book_id = b.id AND status = 'AVAILABLE'
+        )
+      `);
+
+      await AuditService.log({
+        actorId: req.user.id,
+        action: 'ADMIN_APPROVE_BORROW',
+        entityType: 'borrow_tickets',
+        entityId: id,
+        details: { ticketCode: ticket.ticket_code, copyIds, dueDate }
+      }, connection);
+
+      await connection.commit();
+
+      return res.status(200).json({
+        success: true,
+        message: 'Duyệt mượn sách thành công! Đã giảm số lượng sách khả dụng đi 1.',
+        data: {
+          ticket_id: id,
+          status: 'BORROWED',
+          due_date: dueDate
+        }
+      });
+    } catch (error) {
+      await connection.rollback();
+      console.error('Approve ticket error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi khi duyệt phiếu mượn',
+        error: error.message
+      });
+    } finally {
+      connection.release();
     }
   }
 };

@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+import { SYNC_EVENT_NAME } from '@/services/libraryStore';
+
 export const TicketManagementPage: React.FC = () => {
   const [tickets, setTickets] = useState<BorrowTicket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,24 +35,33 @@ export const TicketManagementPage: React.FC = () => {
 
   useEffect(() => {
     loadTickets();
+
+    const handleSync = () => {
+      loadTickets(false);
+    };
+    window.addEventListener(SYNC_EVENT_NAME, handleSync);
+    return () => {
+      window.removeEventListener(SYNC_EVENT_NAME, handleSync);
+    };
   }, []);
 
-  const loadTickets = async () => {
-    setLoading(true);
+  const loadTickets = async (showLoading: boolean | any = true) => {
+    const shouldShow = typeof showLoading === 'boolean' ? showLoading : true;
+    if (shouldShow) setLoading(true);
     try {
       const data = await ticketService.getTickets();
       setTickets(data);
     } catch (err: any) {
       toast.error('Không thể tải danh sách phiếu: ' + err.message);
     } finally {
-      setLoading(false);
+      if (shouldShow) setLoading(false);
     }
   };
 
   const handleApprove = async (id: string) => {
     try {
       await ticketService.approveTicket(id);
-      toast.success('Đã duyệt xuất sách thành công!');
+      toast.success('Đã duyệt xuất sách thành công! Đã đồng bộ và giảm 1 cuốn khả dụng.');
       loadTickets();
       if (selectedTicket?.id === id) {
         setIsDetailModalOpen(false);

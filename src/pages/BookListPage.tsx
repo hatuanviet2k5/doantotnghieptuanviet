@@ -6,6 +6,8 @@ import { bookService } from '@/services/bookService';
 import { categoryService } from '@/services/categoryService';
 import { authorService } from '@/services/authorService';
 import { BookCard } from '@/components/BookCard';
+import { BookCoverImage } from '@/components/BookCoverImage';
+import { SYNC_EVENT_NAME } from '@/services/libraryStore';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
   Search,
@@ -39,10 +41,19 @@ export const BookListPage: React.FC = () => {
 
   useEffect(() => {
     loadInitialData();
+
+    const handleSync = () => {
+      loadInitialData(false);
+    };
+    window.addEventListener(SYNC_EVENT_NAME, handleSync);
+    return () => {
+      window.removeEventListener(SYNC_EVENT_NAME, handleSync);
+    };
   }, []);
 
-  const loadInitialData = async () => {
-    setLoading(true);
+  const loadInitialData = async (showLoading: boolean | any = true) => {
+    const shouldShow = typeof showLoading === 'boolean' ? showLoading : true;
+    if (shouldShow) setLoading(true);
     try {
       const [booksRes, catsRes, authorsRes] = await Promise.all([
         bookService.getBooks(),
@@ -55,7 +66,7 @@ export const BookListPage: React.FC = () => {
     } catch (err: any) {
       toast.error('Không thể tải danh sách sách: ' + err.message);
     } finally {
-      setLoading(false);
+      if (shouldShow) setLoading(false);
     }
   };
 
@@ -252,14 +263,15 @@ export const BookListPage: React.FC = () => {
                 className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-slate-50/70 transition"
               >
                 <div className="flex items-start gap-4 flex-1">
-                  <img
-                    src={
-                      book.coverImage ||
-                      'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=600&q=80'
-                    }
-                    alt={book.title}
-                    className="w-16 h-22 object-cover rounded-xl shadow-xs border border-slate-200 flex-shrink-0"
-                  />
+                  <div className="w-16 h-22 overflow-hidden rounded-xl shadow-xs border border-slate-200 flex-shrink-0 bg-slate-100">
+                    <BookCoverImage
+                      src={book.coverImage}
+                      bookId={book.id}
+                      alt={book.title}
+                      title={book.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <div className="space-y-1">
                     <button
                       onClick={() => navigate(`/books/${book.id}`)}

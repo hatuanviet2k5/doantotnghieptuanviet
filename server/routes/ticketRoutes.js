@@ -6,6 +6,7 @@ const { authorize } = require('../middlewares/rbacMiddleware');
 
 router.post('/hold', authenticate, ticketController.holdBook);
 router.post('/verify-qr', authenticate, authorize('ADMIN', 'LIBRARIAN'), ticketController.verifyQr);
+router.post('/:id/approve', authenticate, authorize('ADMIN', 'LIBRARIAN'), ticketController.approveTicket);
 router.post('/return', authenticate, authorize('ADMIN', 'LIBRARIAN'), ticketController.returnBook);
 router.post('/renew/:id', authenticate, ticketController.renewTicket);
 router.post('/cancel/:id', authenticate, ticketController.cancelTicket);

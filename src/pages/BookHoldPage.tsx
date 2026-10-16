@@ -7,6 +7,7 @@ import { ticketService } from '@/services/ticketService';
 import { HoldTimer } from '@/components/HoldTimer';
 import { QRCodeDisplay } from '@/components/QRCodeDisplay';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { BookCoverImage } from '@/components/BookCoverImage';
 import {
   Bookmark,
   CheckCircle2,
@@ -161,14 +162,15 @@ export const BookHoldPage: React.FC = () => {
 
         {/* Book & Shelf Information Card */}
         <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col sm:flex-row gap-5 items-start">
-          <img
-            src={
-              book.coverImage ||
-              'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=600&q=80'
-            }
-            alt={book.title}
-            className="w-24 h-32 object-cover rounded-xl shadow-xs border border-slate-200 flex-shrink-0"
-          />
+          <div className="w-24 h-32 overflow-hidden rounded-xl shadow-xs border border-slate-200 flex-shrink-0 bg-slate-100">
+            <BookCoverImage
+              src={book.coverImage}
+              bookId={book.id}
+              alt={book.title}
+              title={book.title}
+              className="w-full h-full object-cover"
+            />
+          </div>
 
           <div className="flex-1 space-y-2">
             <span className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-primary-100 text-primary-800">

@@ -5,6 +5,8 @@ import { authorService } from '@/services/authorService';
 import { categoryService } from '@/services/categoryService';
 import { DataTable, Column } from '@/components/DataTable';
 import { Modal } from '@/components/Modal';
+import { BookCoverImage } from '@/components/BookCoverImage';
+import { SYNC_EVENT_NAME } from '@/services/libraryStore';
 import {
   Library,
   Plus,
@@ -64,10 +66,19 @@ export const BookManagementPage: React.FC = () => {
 
   useEffect(() => {
     loadAll();
+
+    const handleSync = () => {
+      loadAll(false);
+    };
+    window.addEventListener(SYNC_EVENT_NAME, handleSync);
+    return () => {
+      window.removeEventListener(SYNC_EVENT_NAME, handleSync);
+    };
   }, []);
 
-  const loadAll = async () => {
-    setLoading(true);
+  const loadAll = async (showLoading: boolean | any = true) => {
+    const shouldShow = typeof showLoading === 'boolean' ? showLoading : true;
+    if (shouldShow) setLoading(true);
     try {
       const [bData, aData, cData] = await Promise.all([
         bookService.getBooks(),
@@ -80,7 +91,7 @@ export const BookManagementPage: React.FC = () => {
     } catch (err: any) {
       toast.error('Lỗi tải dữ liệu: ' + err.message);
     } finally {
-      setLoading(false);
+      if (shouldShow) setLoading(false);
     }
   };
 
@@ -219,11 +230,15 @@ export const BookManagementPage: React.FC = () => {
     {
       header: 'Bìa sách',
       render: (b) => (
-        <img
-          src={b.coverImage || 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=600&q=80'}
-          alt={b.title}
-          className="w-10 h-14 object-cover rounded-lg border border-slate-200"
-        />
+        <div className="w-10 h-14 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+          <BookCoverImage
+            src={b.coverImage}
+            bookId={b.id}
+            alt={b.title}
+            title={b.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
       ),
     },
     {

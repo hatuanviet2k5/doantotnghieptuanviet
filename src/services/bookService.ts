@@ -1,10 +1,6 @@
 import api from './api';
 import { Book, BookCopy } from '@/types';
-import { mockBooks, mockCopies } from './mockData';
-
-// Maintain in-memory state for fallback
-let booksData = [...mockBooks];
-let copiesData = [...mockCopies];
+import { libraryStore } from './libraryStore';
 
 export interface BookFilters {
   search?: string;
@@ -19,7 +15,7 @@ export const bookService = {
       const response = await api.get<Book[]>('/books', { params: filters });
       return response.data;
     } catch {
-      let filtered = [...booksData];
+      let filtered = libraryStore.getBooks();
       if (filters?.search) {
         const q = filters.search.toLowerCase();
         filtered = filtered.filter(
@@ -44,15 +40,9 @@ export const bookService = {
       const response = await api.get<Book>(`/books/${id}`);
       return response.data;
     } catch {
-      const book = booksData.find((b) => b.id === id);
+      const book = libraryStore.getBookById(id);
       if (!book) throw new Error('Không tìm thấy sách!');
-      const copies = copiesData.filter((c) => c.bookId === id);
-      return {
-        ...book,
-        copies,
-        totalCopies: copies.length,
-        availableCopies: copies.filter((c) => c.status === 'AVAILABLE').length,
-      };
+      return book;
     }
   },
 
@@ -72,33 +62,13 @@ export const bookService = {
         publisher: data.publisher || 'NXB Giáo Dục',
         publicationYear: data.publicationYear || new Date().getFullYear(),
         description: data.description || '',
-        coverImage:
-          data.coverImage ||
-          'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=600&q=80',
-        totalCopies: data.totalCopies || 1,
-        availableCopies: data.totalCopies || 1,
+        coverImage: data.coverImage || '/covers/default.svg',
+        totalCopies: data.totalCopies || 25,
+        availableCopies: data.totalCopies || 25,
         copies: [],
       };
 
-      // Generate default copies
-      for (let i = 1; i <= newBook.totalCopies; i++) {
-        const copy: BookCopy = {
-          id: `cp-${newBook.id}-${i}`,
-          bookId: newBook.id,
-          bookTitle: newBook.title,
-          barcode: `BC-${newBook.id.toUpperCase()}-${i.toString().padStart(3, '0')}`,
-          shelfId: 'shelf-1',
-          shelfCode: 'KE-A1',
-          shelfLocation: 'Tầng 1 - Phòng A101',
-          status: 'AVAILABLE',
-          condition: 'Mới 100%',
-        };
-        copiesData.push(copy);
-        newBook.copies?.push(copy);
-      }
-
-      booksData.unshift(newBook);
-      return newBook;
+      return libraryStore.createBook(newBook, data.totalCopies || 25);
     }
   },
 
@@ -107,10 +77,7 @@ export const bookService = {
       const response = await api.put<Book>(`/books/${id}`, data);
       return response.data;
     } catch {
-      const index = booksData.findIndex((b) => b.id === id);
-      if (index === -1) throw new Error('Không tìm thấy sách để cập nhật!');
-      booksData[index] = { ...booksData[index], ...data };
-      return booksData[index];
+      return libraryStore.updateBook(id, data);
     }
   },
 
@@ -119,8 +86,7 @@ export const bookService = {
       await api.delete(`/books/${id}`);
       return true;
     } catch {
-      booksData = booksData.filter((b) => b.id !== id);
-      copiesData = copiesData.filter((c) => c.bookId !== id);
+      libraryStore.deleteBook(id);
       return true;
     }
   },
@@ -130,7 +96,8 @@ export const bookService = {
       const response = await api.get<BookCopy[]>(`/books/${bookId}/copies`);
       return response.data;
     } catch {
-      return copiesData.filter((c) => c.bookId === bookId);
+      const book = libraryStore.getBookById(bookId);
+      return book?.copies || [];
     }
   },
 };

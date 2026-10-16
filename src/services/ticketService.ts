@@ -1,12 +1,10 @@
 import api from './api';
 import { BorrowTicket, TicketStatus } from '@/types';
-import { mockTickets, mockCopies, mockBooks, mockReaderCards, mockUsers } from './mockData';
-
-let ticketsData = [...mockTickets];
+import { libraryStore } from './libraryStore';
+import { mockReaderCards, mockUsers } from './mockData';
 
 // Helper to generate SVG QR code data url
 function generateQRCodeDataUrl(text: string): string {
-  // Generates clean SVG data url with the code and pattern
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
     <rect width="100%" height="100%" fill="#ffffff" rx="8"/>
     <!-- Position Detection Patterns -->
@@ -53,7 +51,7 @@ export const ticketService = {
       const response = await api.get<BorrowTicket[]>('/tickets', { params });
       return response.data;
     } catch {
-      let result = [...ticketsData];
+      let result = libraryStore.getTickets();
       if (params?.status) {
         result = result.filter((t) => t.status === params.status);
       }
@@ -79,7 +77,8 @@ export const ticketService = {
       const response = await api.get<BorrowTicket>(`/tickets/${id}`);
       return response.data;
     } catch {
-      const ticket = ticketsData.find((t) => t.id === id || t.ticketCode === id);
+      const tickets = libraryStore.getTickets();
+      const ticket = tickets.find((t) => t.id === id || t.ticketCode === id);
       if (!ticket) throw new Error('Không tìm thấy thông tin phiếu mượn!');
       return ticket;
     }
@@ -90,12 +89,11 @@ export const ticketService = {
       const response = await api.post<BorrowTicket>('/tickets/hold', { copyId, readerCardId });
       return response.data;
     } catch {
-      // Find copy
-      const copy = mockCopies.find((c) => c.id === copyId);
+      const copies = libraryStore.getCopies();
+      const copy = copies.find((c) => c.id === copyId);
       if (!copy) throw new Error('Không tìm thấy bản sao sách này!');
       if (copy.status !== 'AVAILABLE') throw new Error('Bản sao sách này hiện không còn khả dụng!');
 
-      // Find reader card
       const card = mockReaderCards.find((c) => c.id === readerCardId || c.cardNumber === readerCardId);
       const user = card ? mockUsers.find((u) => u.id === card.userId) : mockUsers[2];
 
@@ -105,6 +103,7 @@ export const ticketService = {
       const holdExpiresAt = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
       const dueDate = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
+      // Mark copy as HOLDING
       copy.status = 'HOLDING';
 
       const newTicket: BorrowTicket = {
@@ -133,7 +132,7 @@ export const ticketService = {
         ],
       };
 
-      ticketsData.unshift(newTicket);
+      libraryStore.addTicket(newTicket);
       return newTicket;
     }
   },
@@ -144,7 +143,8 @@ export const ticketService = {
       return response.data;
     } catch {
       const cleanCode = ticketCode.trim().toUpperCase();
-      const ticket = ticketsData.find(
+      const tickets = libraryStore.getTickets();
+      const ticket = tickets.find(
         (t) => t.ticketCode.toUpperCase() === cleanCode || t.id.toUpperCase() === cleanCode
       );
       if (!ticket) {
@@ -159,15 +159,8 @@ export const ticketService = {
       const response = await api.post<BorrowTicket>(`/tickets/${ticketId}/approve`);
       return response.data;
     } catch {
-      const ticket = ticketsData.find((t) => t.id === ticketId || t.ticketCode === ticketId);
-      if (!ticket) throw new Error('Không tìm thấy phiếu mượn!');
-      ticket.status = 'BORROWED';
-      ticket.items.forEach((item) => {
-        item.status = 'BORROWED';
-        const copy = mockCopies.find((c) => c.id === item.copyId);
-        if (copy) copy.status = 'BORROWED';
-      });
-      return ticket;
+      // Synchronize with libraryStore: changes ticket & copy to BORROWED and decreases availableCopies by 1!
+      return libraryStore.approveTicket(ticketId);
     }
   },
 
@@ -176,17 +169,8 @@ export const ticketService = {
       const response = await api.post<BorrowTicket>(`/tickets/${ticketId}/return`, { returnedCopies });
       return response.data;
     } catch {
-      const ticket = ticketsData.find((t) => t.id === ticketId || t.ticketCode === ticketId);
-      if (!ticket) throw new Error('Không tìm thấy phiếu mượn!');
-      ticket.status = 'RETURNED';
-      ticket.returnDate = new Date().toISOString().split('T')[0];
-      ticket.items.forEach((item) => {
-        item.status = 'RETURNED';
-        item.returnedAt = new Date().toISOString().split('T')[0];
-        const copy = mockCopies.find((c) => c.id === item.copyId);
-        if (copy) copy.status = 'AVAILABLE';
-      });
-      return ticket;
+      // Synchronize with libraryStore: changes copy to AVAILABLE and increases availableCopies by 1!
+      return libraryStore.returnTicket(ticketId);
     }
   },
 
@@ -195,7 +179,8 @@ export const ticketService = {
       const response = await api.post<BorrowTicket>(`/tickets/${ticketId}/renew`);
       return response.data;
     } catch {
-      const ticket = ticketsData.find((t) => t.id === ticketId || t.ticketCode === ticketId);
+      const tickets = libraryStore.getTickets();
+      const ticket = tickets.find((t) => t.id === ticketId || t.ticketCode === ticketId);
       if (!ticket) throw new Error('Không tìm thấy phiếu mượn!');
       const currentDue = new Date(ticket.dueDate);
       currentDue.setDate(currentDue.getDate() + 7);
@@ -209,15 +194,8 @@ export const ticketService = {
       const response = await api.post<BorrowTicket>(`/tickets/${ticketId}/cancel`);
       return response.data;
     } catch {
-      const ticket = ticketsData.find((t) => t.id === ticketId || t.ticketCode === ticketId);
-      if (!ticket) throw new Error('Không tìm thấy phiếu mượn!');
-      ticket.status = 'CANCELLED';
-      ticket.items.forEach((item) => {
-        item.status = 'CANCELLED';
-        const copy = mockCopies.find((c) => c.id === item.copyId);
-        if (copy) copy.status = 'AVAILABLE';
-      });
-      return ticket;
+      // Synchronize with libraryStore: reverts copy to AVAILABLE and restores availableCopies!
+      return libraryStore.cancelTicket(ticketId);
     }
   },
 };

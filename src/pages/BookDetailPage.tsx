@@ -3,6 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Book, BookCopy, BookCopyStatus } from '@/types';
 import { bookService } from '@/services/bookService';
+import { BookCoverImage } from '@/components/BookCoverImage';
+import { SYNC_EVENT_NAME } from '@/services/libraryStore';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
   ArrowLeft,
@@ -32,10 +34,18 @@ export const BookDetailPage: React.FC = () => {
     if (id) {
       loadBookDetails(id);
     }
+
+    const handleSync = () => {
+      if (id) loadBookDetails(id, false);
+    };
+    window.addEventListener(SYNC_EVENT_NAME, handleSync);
+    return () => {
+      window.removeEventListener(SYNC_EVENT_NAME, handleSync);
+    };
   }, [id]);
 
-  const loadBookDetails = async (bookId: string) => {
-    setLoading(true);
+  const loadBookDetails = async (bookId: string, showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const data = await bookService.getBookById(bookId);
       setBook(data);
@@ -137,13 +147,12 @@ export const BookDetailPage: React.FC = () => {
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Book Cover */}
         <div className="flex justify-center md:justify-start">
-          <div className="w-64 max-w-full aspect-[3/4] overflow-hidden rounded-2xl shadow-xl border border-slate-100">
-            <img
-              src={
-                book.coverImage ||
-                'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=600&q=80'
-              }
+          <div className="w-64 max-w-full aspect-[3/4] overflow-hidden rounded-2xl shadow-xl border border-slate-100 bg-slate-100">
+            <BookCoverImage
+              src={book.coverImage}
+              bookId={book.id}
               alt={book.title}
+              title={book.title}
               className="h-full w-full object-cover"
             />
           </div>
