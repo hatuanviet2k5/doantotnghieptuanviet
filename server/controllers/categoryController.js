@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const AuditService = require('../services/auditService');
+const { escapeHtml } = require('../middlewares/securityMiddleware');
 
 const categoryController = {
   /**
@@ -86,7 +87,7 @@ const categoryController = {
 
       const [result] = await pool.query(
         'INSERT INTO categories (code, name, description) VALUES (?, ?, ?)',
-        [code, name, description || null]
+        [escapeHtml(code.trim()), escapeHtml(name.trim()), description ? escapeHtml(description.trim()) : null]
       );
 
       await AuditService.log({

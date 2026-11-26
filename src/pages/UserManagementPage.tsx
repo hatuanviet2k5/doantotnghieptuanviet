@@ -98,7 +98,7 @@ export const UserManagementPage: React.FC = () => {
     const actionText = user.status === 'ACTIVE' ? 'khoá' : 'mở khoá';
     if (window.confirm(`Bạn có chắc chắn muốn ${actionText} tài khoản "${user.username}"?`)) {
       try {
-        await userService.toggleUserStatus(user.id);
+        await userService.toggleUserStatus(user.id, user.status);
         toast.success(`Đã ${actionText} tài khoản thành công!`);
         loadUsers();
       } catch (err: any) {

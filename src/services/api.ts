@@ -16,17 +16,18 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    const reqUrl = error.config?.url || '';
+    const isAuthEndpoint = reqUrl.includes('/auth/login') || reqUrl.includes('/auth/register');
+    if (error.response && error.response.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('readerCard');
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
@@ -34,5 +35,16 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+/**
+ * Chỉ fallback sang mock khi backend thực sự không phản hồi (mất kết nối / proxy 502-504).
+ * Các lỗi nghiệp vụ (400, 401, 403, 404, 429) phải throw thông báo thật từ server.
+ */
+export function handleApiErrorOrFallback(err: any): void {
+  if (err?.response && err.response.status < 502) {
+    const msg = err.response.data?.message || err.message || 'Yêu cầu thất bại';
+    throw new Error(msg);
+  }
+}
 
 export default api;

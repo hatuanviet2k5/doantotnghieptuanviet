@@ -31,10 +31,11 @@ import {
 import toast from 'react-hot-toast';
 
 export const DashboardPage: React.FC = () => {
+  const now = new Date();
   const [stats, setStats] = useState<Statistics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState(10);
-  const [selectedYear, setSelectedYear] = useState(2024);
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
   useEffect(() => {
     loadDashboardData();
@@ -114,7 +115,7 @@ export const DashboardPage: React.FC = () => {
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
               className="bg-transparent font-medium text-slate-700 focus:outline-none"
             >
-              {[2023, 2024, 2025].map((y) => (
+              {[2023, 2024, 2025, 2026, 2027].map((y) => (
                 <option key={y} value={y}>
                   {y}
                 </option>
@@ -217,7 +218,7 @@ export const DashboardPage: React.FC = () => {
         {/* Chart 2: Monthly Trends */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
           <h3 className="text-base font-bold text-slate-900 mb-1">
-            Xu hướng lưu thông theo tháng (2024)
+            Xu hướng lưu thông theo tháng ({selectedYear})
           </h3>
           <p className="text-xs text-slate-500 mb-6">
             So sánh số lượt mượn và số lượt trả qua 6 tháng gần nhất

@@ -50,7 +50,9 @@ const ticketController = {
       // Clean up previous expired holds
       await cleanupExpiredHolds(connection);
 
-      const { copy_id, copy_ids, reader_card_id } = req.body;
+      const copy_id = req.body.copy_id || req.body.copyId;
+      const copy_ids = req.body.copy_ids || req.body.copyIds;
+      const reader_card_id = req.body.reader_card_id || req.body.readerCardId;
       const targetCopyIds = copy_ids || (copy_id ? [copy_id] : []);
 
       if (targetCopyIds.length === 0) {
@@ -264,7 +266,7 @@ const ticketController = {
   async verifyQr(req, res) {
     const connection = await pool.getConnection();
     try {
-      const { ticket_code } = req.body;
+      const ticket_code = req.body.ticket_code || req.body.ticketCode;
 
       if (!ticket_code) {
         return res.status(400).json({
@@ -411,7 +413,8 @@ const ticketController = {
   async returnBook(req, res) {
     const connection = await pool.getConnection();
     try {
-      const { ticket_id, ticket_code } = req.body;
+      const ticket_id = req.body.ticket_id || req.body.ticketId;
+      const ticket_code = req.body.ticket_code || req.body.ticketCode;
 
       if (!ticket_id && !ticket_code) {
         return res.status(400).json({
@@ -807,6 +810,34 @@ const ticketController = {
         LIMIT ? OFFSET ?
       `;
       const [tickets] = await pool.query(selectSql, [...queryParams, limitNum, offset]);
+
+      // Attach items for each ticket
+      if (tickets.length > 0) {
+        const ticketIds = tickets.map(t => t.id);
+        const placeholders = ticketIds.map(() => '?').join(',');
+        const [itemRows] = await pool.query(
+          `SELECT
+             td.id, td.ticket_id, td.copy_id,
+             bc.copy_code, bc.status AS copy_status,
+             b.id AS book_id, b.title AS book_title,
+             s.shelf_code
+           FROM ticket_details td
+           JOIN book_copies bc ON td.copy_id = bc.id
+           JOIN books b ON bc.book_id = b.id
+           LEFT JOIN shelves s ON bc.shelf_id = s.id
+           WHERE td.ticket_id IN (${placeholders})`,
+          ticketIds
+        );
+
+        const itemsByTicket = {};
+        for (const item of itemRows) {
+          if (!itemsByTicket[item.ticket_id]) itemsByTicket[item.ticket_id] = [];
+          itemsByTicket[item.ticket_id].push(item);
+        }
+        tickets.forEach(t => {
+          t.items = itemsByTicket[t.id] || [];
+        });
+      }
 
       return res.status(200).json({
         success: true,

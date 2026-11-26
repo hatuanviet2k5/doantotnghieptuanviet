@@ -19,6 +19,7 @@ import {
   Bell,
   Clock,
   Sparkles,
+  DollarSign,
 } from 'lucide-react';
 import { Role } from '@/types';
 
@@ -49,6 +50,16 @@ export const Layout: React.FC = () => {
       path: '/my-tickets',
       icon: Ticket,
       roles: ['BORROWER'],
+    },
+    {
+      label: 'Khoản phạt & Thanh toán',
+      path: '/fines',
+      icon: DollarSign,
+    },
+    {
+      label: 'Hồ sơ cá nhân',
+      path: '/profile',
+      icon: UserIcon,
     },
 
     // Librarian only or Admin

@@ -6,7 +6,13 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "seed": "node seed.js"
+    "seed": "node seed.js",
+    "test": "jest --runInBand --detectOpenHandles --forceExit",
+    "test:verbose": "jest --runInBand --detectOpenHandles --forceExit --verbose",
+    "test:auth": "jest tests/auth.test.js --runInBand --detectOpenHandles --forceExit",
+    "test:books": "jest tests/books.test.js --runInBand --detectOpenHandles --forceExit",
+    "test:tickets": "jest tests/tickets.test.js --runInBand --detectOpenHandles --forceExit",
+    "test:security": "jest tests/security.test.js --runInBand --detectOpenHandles --forceExit"
   },
   "keywords": [
     "library",
@@ -22,11 +28,17 @@
     "dotenv": "^16.4.5",
     "exceljs": "^4.4.0",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.7.5",
     "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.12.1",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.9.7",
     "pdfkit": "^0.15.0",
     "qrcode": "^1.5.3",
     "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2",
+    "supertest": "^7.3.2"
   }
 }

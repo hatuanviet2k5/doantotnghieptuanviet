@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const AuditService = require('../services/auditService');
+const { escapeHtml } = require('../middlewares/securityMiddleware');
 
 const authorController = {
   /**
@@ -66,12 +67,13 @@ const authorController = {
    */
   async create(req, res) {
     try {
-      const { code, name, bio } = req.body;
+      const code = req.body.code ? String(req.body.code).trim() : `TG-${Date.now().toString().slice(-5)}`;
+      const { name, bio } = req.body;
 
-      if (!code || !name) {
+      if (!name) {
         return res.status(400).json({
           success: false,
-          message: 'Mã tác giả và tên tác giả là bắt buộc'
+          message: 'Tên tác giả là bắt buộc'
         });
       }
 
@@ -85,7 +87,7 @@ const authorController = {
 
       const [result] = await pool.query(
         'INSERT INTO authors (code, name, bio) VALUES (?, ?, ?)',
-        [code, name, bio || null]
+        [escapeHtml(code.trim()), escapeHtml(name.trim()), bio ? escapeHtml(bio.trim()) : null]
       );
 
       await AuditService.log({

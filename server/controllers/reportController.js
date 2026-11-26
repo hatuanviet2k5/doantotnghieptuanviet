@@ -74,6 +74,63 @@ const reportController = {
       const [totalUsers] = await pool.query("SELECT COUNT(id) AS count FROM users WHERE status = 'ACTIVE'");
       const [activeCards] = await pool.query("SELECT COUNT(id) AS count FROM reader_cards WHERE status = 'ACTIVE'");
 
+      // 6. Monthly borrows & returns for selected year
+      const [monthlyRows] = await pool.query(
+        `SELECT
+           MONTH(bt.created_at) AS month_num,
+           SUM(CASE WHEN bt.status IN ('BORROWED', 'RETURNED', 'OVERDUE') THEN 1 ELSE 0 END) AS borrows,
+           SUM(CASE WHEN bt.status = 'RETURNED' THEN 1 ELSE 0 END) AS returns
+         FROM borrow_tickets bt
+         WHERE YEAR(bt.created_at) = ?
+         GROUP BY MONTH(bt.created_at)
+         ORDER BY month_num ASC`,
+        [currentYear]
+      );
+      const monthlyMap = {};
+      monthlyRows.forEach(r => {
+        monthlyMap[r.month_num] = {
+          borrows: parseInt(r.borrows || 0, 10),
+          returns: parseInt(r.returns || 0, 10)
+        };
+      });
+      const monthlyBorrows = Array.from({ length: 12 }, (_, idx) => {
+        const m = idx + 1;
+        return {
+          month: `Tháng ${m}`,
+          borrows: monthlyMap[m]?.borrows || 0,
+          returns: monthlyMap[m]?.returns || 0
+        };
+      });
+
+      // 7. Overdue tickets (top 10)
+      const [overdueTicketRows] = await pool.query(
+        `SELECT
+           bt.id, bt.ticket_code, bt.created_at, bt.due_date,
+           DATEDIFF(NOW(), bt.due_date) AS overdue_days,
+           rc.id AS reader_card_id, rc.card_number,
+           u.id AS user_id, u.full_name AS borrower_name, u.phone,
+           (
+             DATEDIFF(NOW(), bt.due_date) * (SELECT COUNT(id) FROM ticket_details WHERE ticket_id = bt.id) * 5000
+           ) AS estimated_fine
+         FROM borrow_tickets bt
+         JOIN reader_cards rc ON bt.reader_card_id = rc.id
+         JOIN users u ON rc.user_id = u.id
+         WHERE bt.status = 'BORROWED' AND bt.due_date < NOW()
+         ORDER BY bt.due_date ASC
+         LIMIT 10`
+      );
+
+      // 8. Recent activities from audit_logs
+      const [recentActivityRows] = await pool.query(
+        `SELECT al.id, al.actor_id, al.action, al.entity_type, al.entity_id, al.details, al.created_at,
+                u.full_name AS actor_name, r.name AS actor_role
+         FROM audit_logs al
+         LEFT JOIN users u ON al.actor_id = u.id
+         LEFT JOIN roles r ON u.role_id = r.id
+         ORDER BY al.id DESC
+         LIMIT 10`
+      );
+
       return res.status(200).json({
         success: true,
         data: {
@@ -92,7 +149,10 @@ const reportController = {
             total_users: totalUsers[0].count,
             active_cards: activeCards[0].count
           },
-          borrows_by_category: categoryBorrows
+          borrows_by_category: categoryBorrows,
+          monthly_borrows: monthlyBorrows,
+          overdue_tickets: overdueTicketRows,
+          recent_activities: recentActivityRows
         }
       });
     } catch (error) {

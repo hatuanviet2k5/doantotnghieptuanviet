@@ -124,6 +124,57 @@ const readerCardController = {
   },
 
   /**
+   * Lấy thẻ thư viện theo userId
+   * GET /api/v1/reader-cards/user/:userId
+   */
+  async getByUserId(req, res) {
+    try {
+      const { userId } = req.params;
+      if (req.user.role === 'BORROWER' && req.user.id !== parseInt(userId, 10)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Bạn không có quyền xem thẻ của độc giả khác'
+        });
+      }
+
+      const [rows] = await pool.query(
+        `SELECT
+           rc.*,
+           u.id AS user_id, u.username, u.full_name, u.email, u.phone,
+           (
+             SELECT COUNT(td.id)
+             FROM borrow_tickets bt
+             JOIN ticket_details td ON bt.id = td.ticket_id
+             WHERE bt.reader_card_id = rc.id AND bt.status IN ('PENDING', 'BORROWED')
+           ) AS currently_borrowing_count
+         FROM reader_cards rc
+         JOIN users u ON rc.user_id = u.id
+         WHERE rc.user_id = ?`,
+        [userId]
+      );
+
+      if (rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Người dùng chưa có thẻ độc giả'
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: rows[0]
+      });
+    } catch (error) {
+      console.error('Get reader card by user error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Lỗi khi lấy thông tin thẻ độc giả',
+        error: error.message
+      });
+    }
+  },
+
+  /**
    * Cấp thẻ thư viện mới cho người dùng
    * POST /api/v1/reader-cards
    */

@@ -3,8 +3,9 @@ const router = express.Router();
 const ticketController = require('../controllers/ticketController');
 const authenticate = require('../middlewares/authMiddleware');
 const { authorize } = require('../middlewares/rbacMiddleware');
+const { holdLimiter } = require('../middlewares/securityMiddleware');
 
-router.post('/hold', authenticate, ticketController.holdBook);
+router.post('/hold', authenticate, holdLimiter, ticketController.holdBook);
 router.post('/verify-qr', authenticate, authorize('ADMIN', 'LIBRARIAN'), ticketController.verifyQr);
 router.post('/:id/approve', authenticate, authorize('ADMIN', 'LIBRARIAN'), ticketController.approveTicket);
 router.post('/return', authenticate, authorize('ADMIN', 'LIBRARIAN'), ticketController.returnBook);

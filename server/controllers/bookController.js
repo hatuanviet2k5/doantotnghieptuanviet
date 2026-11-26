@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const AuditService = require('../services/auditService');
+const { escapeHtml } = require('../middlewares/securityMiddleware');
 
 const bookController = {
   /**
@@ -168,8 +169,9 @@ const bookController = {
    */
   async create(req, res) {
     try {
+      const rawCode = req.body.code;
+      const code = rawCode ? String(rawCode).trim() : `BOOK-${Date.now().toString().slice(-6)}`;
       const {
-        code,
         isbn,
         title,
         author_id,
@@ -180,10 +182,10 @@ const bookController = {
         cover_image
       } = req.body;
 
-      if (!code || !isbn || !title || !author_id || !category_id) {
+      if (!isbn || !title || !author_id || !category_id) {
         return res.status(400).json({
           success: false,
-          message: 'Vui lòng cung cấp đầy đủ: mã sách, ISBN, tên sách, tác giả và thể loại'
+          message: 'Vui lòng cung cấp đầy đủ: ISBN, tên sách, tác giả và thể loại'
         });
       }
 
@@ -216,6 +218,9 @@ const bookController = {
         finalCoverImage = `/uploads/${req.file.filename}`;
       }
 
+      const cleanTitle = escapeHtml(title.trim());
+      const cleanPublisher = publisher ? escapeHtml(publisher.trim()) : null;
+
       const [result] = await pool.query(
         `INSERT INTO books
            (code, isbn, title, author_id, category_id, publisher, publish_year, max_borrow_days, cover_image, status, version)
@@ -223,10 +228,10 @@ const bookController = {
         [
           code,
           isbn,
-          title,
+          cleanTitle,
           author_id,
           category_id,
-          publisher || null,
+          cleanPublisher,
           publish_year ? parseInt(publish_year, 10) : null,
           max_borrow_days ? parseInt(max_borrow_days, 10) : 14,
           finalCoverImage

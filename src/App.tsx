@@ -17,6 +17,8 @@ import { UserManagementPage } from '@/pages/UserManagementPage';
 import { ReaderCardPage } from '@/pages/ReaderCardPage';
 import { BookManagementPage } from '@/pages/BookManagementPage';
 import { AuditLogPage } from '@/pages/AuditLogPage';
+import { ProfilePage } from '@/pages/ProfilePage';
+import { FineManagementPage } from '@/pages/FineManagementPage';
 
 export const App: React.FC = () => {
   return (
@@ -38,6 +40,8 @@ export const App: React.FC = () => {
         {/* All Authenticated Users */}
         <Route path="books" element={<BookListPage />} />
         <Route path="books/:id" element={<BookDetailPage />} />
+        <Route path="profile" element={<ProfilePage />} />
+        <Route path="fines" element={<FineManagementPage />} />
 
         {/* Borrower Routes */}
         <Route

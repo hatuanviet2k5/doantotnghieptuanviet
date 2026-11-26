@@ -1,4 +1,4 @@
-import api from './api';
+import api, { handleApiErrorOrFallback } from './api';
 import { Book, BookCopy } from '@/types';
 import { libraryStore } from './libraryStore';
 
@@ -9,12 +9,59 @@ export interface BookFilters {
   status?: string;
 }
 
+function mapCopy(raw: any, bookId?: string, bookTitle?: string): BookCopy {
+  return {
+    id: String(raw.id),
+    bookId: String(raw.book_id ?? bookId ?? ''),
+    bookTitle: raw.book_title || bookTitle,
+    barcode: raw.barcode || raw.copy_code || '',
+    shelfId: String(raw.shelf_id ?? ''),
+    shelfCode: raw.shelfCode || raw.shelf_code || 'Kệ chính',
+    shelfLocation: raw.shelfLocation || raw.shelf_location || 'Tầng 1',
+    status: raw.status || 'AVAILABLE',
+    condition: raw.condition || raw.condition_note || 'Tốt',
+    createdAt: raw.created_at,
+  };
+}
+
+function mapBook(raw: any): Book {
+  const id = String(raw.id);
+  const title = raw.title || '';
+  return {
+    id,
+    title,
+    isbn: raw.isbn || '',
+    authorId: String(raw.authorId ?? raw.author_id ?? ''),
+    authorName: raw.authorName || raw.author_name || 'Đang cập nhật',
+    categoryId: String(raw.categoryId ?? raw.category_id ?? ''),
+    categoryName: raw.categoryName || raw.category_name || 'Tài liệu chung',
+    publisher: raw.publisher || 'Đang cập nhật',
+    publicationYear: raw.publicationYear ?? raw.publish_year ?? new Date().getFullYear(),
+    description: raw.description || '',
+    coverImage: raw.coverImage || raw.cover_image || undefined,
+    totalCopies: Number(raw.totalCopies ?? raw.total_copies ?? 0),
+    availableCopies: Number(raw.availableCopies ?? raw.available_copies ?? 0),
+    copies: Array.isArray(raw.copies) ? raw.copies.map((c: any) => mapCopy(c, id, title)) : undefined,
+  };
+}
+
 export const bookService = {
   async getBooks(filters?: BookFilters): Promise<Book[]> {
     try {
-      const response = await api.get<Book[]>('/books', { params: filters });
-      return response.data;
-    } catch {
+      const response = await api.get<any>('/books', {
+        params: {
+          search: filters?.search || undefined,
+          category_id: filters?.categoryId || undefined,
+          author_id: filters?.authorId || undefined,
+          status: filters?.status || undefined,
+          limit: 100,
+        },
+      });
+      const payload = response.data?.data;
+      const items = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload) ? payload : [];
+      return items.map(mapBook);
+    } catch (err: any) {
+      handleApiErrorOrFallback(err);
       let filtered = libraryStore.getBooks();
       if (filters?.search) {
         const q = filters.search.toLowerCase();
@@ -37,9 +84,11 @@ export const bookService = {
 
   async getBookById(id: string): Promise<Book> {
     try {
-      const response = await api.get<Book>(`/books/${id}`);
-      return response.data;
-    } catch {
+      const response = await api.get<any>(`/books/${id}`);
+      const payload = response.data?.data || response.data;
+      return mapBook(payload);
+    } catch (err: any) {
+      handleApiErrorOrFallback(err);
       const book = libraryStore.getBookById(id);
       if (!book) throw new Error('Không tìm thấy sách!');
       return book;
@@ -48,9 +97,19 @@ export const bookService = {
 
   async createBook(data: Partial<Book>): Promise<Book> {
     try {
-      const response = await api.post<Book>('/books', data);
-      return response.data;
-    } catch {
+      const response = await api.post<any>('/books', {
+        isbn: data.isbn,
+        title: data.title,
+        author_id: data.authorId,
+        category_id: data.categoryId,
+        publisher: data.publisher,
+        publish_year: data.publicationYear,
+        cover_image: data.coverImage,
+      });
+      const payload = response.data?.data || response.data;
+      return mapBook(payload);
+    } catch (err: any) {
+      handleApiErrorOrFallback(err);
       const newBook: Book = {
         id: `b-${Date.now()}`,
         title: data.title || 'Sách mới',
@@ -74,9 +133,18 @@ export const bookService = {
 
   async updateBook(id: string, data: Partial<Book>): Promise<Book> {
     try {
-      const response = await api.put<Book>(`/books/${id}`, data);
-      return response.data;
-    } catch {
+      await api.put<any>(`/books/${id}`, {
+        isbn: data.isbn,
+        title: data.title,
+        author_id: data.authorId,
+        category_id: data.categoryId,
+        publisher: data.publisher,
+        publish_year: data.publicationYear,
+        cover_image: data.coverImage,
+      });
+      return await this.getBookById(id);
+    } catch (err: any) {
+      handleApiErrorOrFallback(err);
       return libraryStore.updateBook(id, data);
     }
   },
@@ -85,7 +153,8 @@ export const bookService = {
     try {
       await api.delete(`/books/${id}`);
       return true;
-    } catch {
+    } catch (err: any) {
+      handleApiErrorOrFallback(err);
       libraryStore.deleteBook(id);
       return true;
     }
@@ -93,9 +162,11 @@ export const bookService = {
 
   async getCopiesByBookId(bookId: string): Promise<BookCopy[]> {
     try {
-      const response = await api.get<BookCopy[]>(`/books/${bookId}/copies`);
-      return response.data;
-    } catch {
+      const response = await api.get<any>('/copies', { params: { book_id: bookId } });
+      const items = response.data?.data || response.data || [];
+      return Array.isArray(items) ? items.map((c: any) => mapCopy(c, bookId)) : [];
+    } catch (err: any) {
+      handleApiErrorOrFallback(err);
       const book = libraryStore.getBookById(bookId);
       return book?.copies || [];
     }

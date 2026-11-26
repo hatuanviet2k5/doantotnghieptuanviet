@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const morgan = require('morgan');
 const path = require('path');
 const dotenv = require('dotenv');
 
@@ -7,11 +8,16 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 
 const apiRoutes = require('./routes');
 const pool = require('./config/database');
+const { securityHeaders } = require('./middlewares/securityMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middlewares
+// Security & Logging Middlewares
+app.use(securityHeaders);
+if (process.env.NODE_ENV !== 'test') {
+  app.use(morgan('dev'));
+}
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
